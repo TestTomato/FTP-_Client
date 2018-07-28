@@ -122,7 +122,7 @@ void send_put(int sd, char *filename)
 
 
 	/* wait for response */
-	if(read_code(sd,&opcode) == -1){
+	if(read_opcode(sd,&opcode) == -1){
 		printf("failed to read opcode\n");
 		return;
 	}
@@ -131,7 +131,7 @@ void send_put(int sd, char *filename)
 		return;
 	}
 
-	if(read_code(sd,&ackcode) == -1){
+	if(read_opcode(sd,&ackcode) == -1){
 		printf("failed to read ackcode\n");
 		return;
 	}
@@ -218,7 +218,7 @@ void send_get(int sd, char *filename)
 
 	/* error code being sent */
 	if(opcode == OP_GET){
-		if(read_code(sd,&ackcode) == -1){
+		if(read_opcode(sd,&ackcode) == -1){
 			printf("failed to read ackcode\n");
 			return;
 		}
