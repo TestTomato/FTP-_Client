@@ -169,7 +169,7 @@ void send_put(int sd, char *filename)
 	char buf[FILE_BLOCK_SIZE];
 
 	while((nr = read(fd,buf,FILE_BLOCK_SIZE)) > 0){
-		if ( write_nbytes(sd,buf,nr) == -1){
+		if ( write_n_bytes(sd,buf,nr) == -1){
 			printf("failed to send file content\n");
 			return;
 		}
