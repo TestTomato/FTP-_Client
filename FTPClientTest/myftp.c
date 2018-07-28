@@ -358,7 +358,7 @@ void send_dir(int sd, char *token)
 
 	char directory[filesize+1];
 
-	if(read_nbytes(sd, directory, filesize) == -1){
+	if(read_n_bytes(sd, directory, filesize) == -1){
 		printf("Failed to read directory list\n");
 		return;
 	}
