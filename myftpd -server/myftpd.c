@@ -114,7 +114,7 @@ void handle_put(descriptors *desc)
 	int fd;
 
 	/* read filename and length */
-	if( read_twobytelength(desc->sd,&filenamelength) == -1)
+	if( read_two_byte_length(desc->sd,&filenamelength) == -1)
 	{
 		logger(desc,"failed to read 2 byte length");
 		return;
@@ -122,7 +122,7 @@ void handle_put(descriptors *desc)
 
 	char filename[filenamelength + 1];
 
-	if(read_nbytes(desc->sd,filename,filenamelength) == -1)
+	if(read_n_bytes(desc->sd,filename,filenamelength) == -1)
 	{
 		logger(desc,"failed to read filename");
 		return;
@@ -145,13 +145,13 @@ void handle_put(descriptors *desc)
 
 
 	/* write acknowledgement */
-	if( write_code(desc->sd,OP_PUT) == -1 )
+	if( write_opcode(desc->sd,OP_PUT) == -1 )
 	{
 		logger(desc,"failed to write OP_PUT");
 		return;
 	}
 
-	if(write_code(desc->sd,ackcode) == -1)
+	if(write_opcode(desc->sd,ackcode) == -1)
 	{
 		logger(desc,"failed to write ackcode:%c",ackcode);
 		return;
@@ -164,7 +164,7 @@ void handle_put(descriptors *desc)
 	}
 
 	/* read response from client */
-	if(read_code(desc->sd,&opcode) == -1)
+	if(read_opcode(desc->sd,&opcode) == -1)
 	{
 		logger(desc,"failed to read code");
 	}
@@ -178,7 +178,7 @@ void handle_put(descriptors *desc)
 	int filesize;
 
 	/* read filesize */
-	if(read_fourbytelength(desc->sd,&filesize) == -1)
+	if(read_four_byte_length(desc->sd,&filesize) == -1)
 	{
 		logger(desc,"failed to read filesize");
 		return;
@@ -201,7 +201,7 @@ void handle_put(descriptors *desc)
 		{
 			block_size = filesize;
 		}
-		if( (nr = read_nbytes(desc->sd,filebuffer,block_size)) == -1)
+		if( (nr = read_n_bytes(desc->sd,filebuffer,block_size)) == -1)
 		{
 			logger(desc,"failed to read bytes");
 			close(fd);
@@ -234,14 +234,14 @@ void handle_get(descriptors *desc)
 
 
 	/* read filename and length */
-	if( read_twobytelength(desc->sd,&filenamelength) == -1){
+	if( read_two_byte_length(desc->sd,&filenamelength) == -1){
 		printf("failed to read 2 byte length");
 		return;
 	}
 
 	char filename[filenamelength + 1];
 
-	if(read_nbytes(desc->sd,filename,filenamelength) == -1){
+	if(read_n_bytes(desc->sd,filename,filenamelength) == -1){
 		printf("failed to read filename");
 		return;
 	}
@@ -254,11 +254,11 @@ void handle_get(descriptors *desc)
 	if( (fd = open(filename, O_RDONLY)) == -1){
 		ackcode = ACK_GET_FIND;
 		logger(desc,"%s",ACK_GET_FIND_MSG);
-		if(write_code(desc->sd,OP_GET) == -1){
+		if(write_opcode(desc->sd,OP_GET) == -1){
 			logger(desc,"failed to write opcode:%c",OP_GET);
 			return;
 		}
-		if(write_code(desc->sd,ackcode) == -1){
+		if(write_opcode(desc->sd,ackcode) == -1){
 			logger(desc,"failed to write ackcode:%c",ackcode);
 		}
 		return;
@@ -268,11 +268,11 @@ void handle_get(descriptors *desc)
 		logger(desc,"fstat error");
 		ackcode = ACK_GET_OTHER;
 		logger(desc,"%s",ACK_GET_OTHER_MSG);
-		if(write_code(desc->sd,OP_GET) == -1){
+		if(write_opcode(desc->sd,OP_GET) == -1){
 			logger(desc,"failed to write opcode:%c",OP_GET);
 			return;
 		}
-		if(write_code(desc->sd,ackcode) == -1){
+		if(write_opcode(desc->sd,ackcode) == -1){
 			logger(desc,"failed to write ackcode:%c",ackcode);
 		}
 		return;
@@ -285,12 +285,12 @@ void handle_get(descriptors *desc)
 
 
 	/* send the data */
-	if( write_code(desc->sd,OP_DATA) == -1){
+	if( write_opcode(desc->sd,OP_DATA) == -1){
 		logger(desc,"failed to send OP_DATA");
 		return;
 	}
 
-	if(write_fourbytelength(desc->sd,filesize) == -1){
+	if(write_four_byte_length(desc->sd,filesize) == -1){
 		logger(desc,"failed to send filesize");
 		return;
 	}
@@ -299,7 +299,7 @@ void handle_get(descriptors *desc)
 	char buf[FILE_BLOCK_SIZE];
 
 	while((nr = read(fd,buf,FILE_BLOCK_SIZE)) > 0){
-		if ( write_nbytes(desc->sd,buf,nr) == -1){
+		if ( write_n_bytes(desc->sd,buf,nr) == -1){
 			logger(desc,"failed to send file content");
 			return;
 		}
@@ -318,7 +318,7 @@ void handle_pwd(descriptors *desc)
 
 	getcwd(cwd, sizeof(cwd));
 
-	if(write_code(desc->sd,OP_PWD) == -1){
+	if(write_opcode(desc->sd,OP_PWD) == -1){
 		logger(desc, "Failed to write opcode");
 		return;
 	}
@@ -328,7 +328,7 @@ void handle_pwd(descriptors *desc)
 		return;
 	}
 
-	if(write_nbytes(desc->sd, cwd, strlen(cwd)) == -1){
+	if(write_n_bytes(desc->sd, cwd, strlen(cwd)) == -1){
 		logger(desc, "Failed to write directory");
 		return;
 	}
@@ -357,17 +357,17 @@ void handle_dir(descriptors *desc)
 		logger(desc, "DIR success");
 	}
 
-	if(write_code(desc->sd,OP_DIR) == -1){
+	if(write_opcode(desc->sd,OP_DIR) == -1){
 		logger(desc, "Failed to write opcode");
 		return;
 	}
 
-	if(write_fourbytelength(desc->sd, strlen(files)) == -1){
+	if(write_four_byte_length(desc->sd, strlen(files)) == -1){
 		logger(desc, "Failed to write length");
 		return;
 	}
 
-	if(write_nbytes(desc->sd, files, strlen(files)) == -1){
+	if(write_n_bytes(desc->sd, files, strlen(files)) == -1){
 		logger(desc, "Failed to write file list");
 		return;
 	}
@@ -383,7 +383,7 @@ void handle_cd(descriptors *desc)
 	int size;
 	char ackcode;
 
-	if(read_twobytelength(desc->sd, &size) == -1)
+	if(read_two_byte_length(desc->sd, &size) == -1)
 	{
 		logger(desc, "failed to read size");
 		return;
@@ -391,7 +391,7 @@ void handle_cd(descriptors *desc)
 
 	char token[size + 1];
 
-	if(read_nbytes(desc->sd,token,size) == -1)
+	if(read_n_bytes(desc->sd,token,size) == -1)
 	{
 		logger(desc, "failed to read token");
 		return;
@@ -411,13 +411,13 @@ void handle_cd(descriptors *desc)
 		logger(desc,"CD cannot find directory");
 	}
 
-	if(write_code(desc->sd, OP_CD) == -1)
+	if(write_opcode(desc->sd, OP_CD) == -1)
 	{
 		logger(desc, "failed to send cd");
 		return;
 	}
 
-	if(write_code(desc->sd, ackcode) == -1)
+	if(write_opcode(desc->sd, ackcode) == -1)
 	{
 		logger(desc, "failed to send ackcode");
 		return;
@@ -474,7 +474,7 @@ void serve_a_client(int sd)
 
 	logger(desc,"connected");
 
-	while (read_code(desc->sd, &cmdCode) > 0)
+	while (read_opcode(desc->sd, &cmdCode) > 0)
 	{
 
 		switch(cmdCode)
