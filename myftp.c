@@ -3,7 +3,7 @@
  * Date: 29/07/18
  * Filename: myftp.c
  * Description: The main function for client application for myftp 
- * hvbkjvkjv
+ * hvbkjvkjv -Editing this rubish right heere
  */
 
 
