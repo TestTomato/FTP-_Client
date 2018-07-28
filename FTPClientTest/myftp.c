@@ -73,7 +73,7 @@
 
 
 /*
- * Uses the myftp protocol to print the current directory path of the server.
+ * Uses the myftp protocol to get and display the current directory path of the server.
  */
 void send_pwd(int sd, char *token)
 {
@@ -112,17 +112,17 @@ void send_pwd(int sd, char *token)
 }
 
 /*
- * Prints the current local directory path of the client.
+ * Displays the current local directory path of the client.
  */
 void display_lpwd()
 {
-	char cwd[256];
+  char cwd[256];
   getcwd(cwd, sizeof(cwd));
   printf("%s\n", cwd);
 }
 
 /*
- * Uses myftp protocol to print the list of files on the current directory of the server.
+ * Uses myftp protocol to get and display the list of files on the current directory of the server.
  */
 void send_dir(int sd, char *token)
 {
@@ -448,7 +448,7 @@ void send_put(int sd, char *filename)
  */
 void display_exit()
 {
-	printf("Session terminated\n");
+	printf("Session terminated.\n");
 }
 
 
