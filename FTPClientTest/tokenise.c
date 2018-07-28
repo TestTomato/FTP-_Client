@@ -6,7 +6,7 @@
   */
   
    #include <string.h>
-   #include "token.h"
+   #include "tokenise.h"
   
   int tokenise (char line[], char *token[])
   {
