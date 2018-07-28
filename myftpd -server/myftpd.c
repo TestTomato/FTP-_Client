@@ -37,7 +37,7 @@ typedef struct
  * Outputs current time, client id, and passed format string to log file.
  *	Remove timestamp maybe
  */
-void logger(descriptors *d, char* thingsToWriteIntoLog)
+void logger(descriptors *d, char* thingsToWriteIntoLog, ... )
 {
 	int fileDescriptor;
 	if( (fileDescriptor = open(d->logfile, O_WRONLY | O_APPEND | O_CREAT, 0766)) == -1 )
