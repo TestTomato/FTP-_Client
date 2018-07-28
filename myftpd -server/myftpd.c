@@ -154,7 +154,7 @@ void handle_put(descriptors *desc)
 		return;
 	}
 
-	if (write_code(desc->sd,errCode) == -1)
+	if (write_code(desc->sd, errCode) == -1)
 	{
 		logger(desc,"ERROR: failed to write errCode:%c", errCode);
 		return;
@@ -219,8 +219,7 @@ void handle_put(descriptors *desc)
 		filesize -= nw;
 	}
 	close(fd);
-	logger(desc,"SUCCESS: command 'put' success");
-	logger(desc,"PUT completed");
+	logger(desc,"SUCCESS: command 'put' completed");
 }
 
 
@@ -374,7 +373,7 @@ void handle_dir(descriptors *desc)
 		logger(desc, "ERROR: failed to write file list");
 		return;
 	}
-	logger(desc,"DIR complete");
+	logger(desc,"SUCCESS: dir complete");
 }
 
 
