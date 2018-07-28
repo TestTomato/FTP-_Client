@@ -323,7 +323,7 @@ void handle_pwd(descriptors *desc)
 		return;
 	}
 
-	if(write_twobytelength(desc->sd, strlen(cwd)) == -1){
+	if(write_two_byte_length(desc->sd, strlen(cwd)) == -1){
 		logger(desc, "Failed to write length");
 		return;
 	}
