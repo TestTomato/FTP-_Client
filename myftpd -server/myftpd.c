@@ -24,9 +24,9 @@
 #include "stream.h"
 
 //Command codes convert to char
-#define cmd_Put  'P'
-#define cmd_Get  'G'
-#define cmd_Pwd  'A'
+#define cmd_put  'P'
+#define cmd_get  'G'
+#define cmd_pwd  'A'
 #define cmd_dir  'B'
 #define cmd_cd	 'C'
 #define cmd_data 'D'
@@ -70,7 +70,7 @@ void logger(descriptors *d, char* thingsToWriteIntoLog, ... )
 	char clientIDString[64] = "";
 
 
-	if(d->clientIDString != 0)
+	if(d->clientID != 0)
 	{
 		sprintf(clientIDString, clientIDFormat, d->clientID);
 	}
@@ -376,27 +376,27 @@ void daemon_init(void)
 }
 
 // Recieve a one byte char command off socket connection from client----
-void serve_a_client(int sd)
+void serve_a_client(descriptors *desc)
 {	
 	char cmdCode;
 
-	logger(desc,"connected");
+	logger(desc, "connected");
 
-	while (read_code(desc->sd, &cmdCode) > 0)
+	while (read_opcode(desc->sd, &cmdCode) > 0)
 	{
 
 		switch(cmdCode)
 		{
-			case cmd_Put:
+			case cmd_put:
 				handle_put(desc);
 			break;
-			case cmd_Get:
+			case cmd_get:
 				handle_get(desc);
 			break;
-			case cmd_Pwd:
+			case cmd_pwd:
 				handle_pwd(desc);
 			break;
-			case cmd_Dir:
+			case cmd_dir:
 				handle_dir(desc);
 			break;
 			case cmd_cd:
