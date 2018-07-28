@@ -11,7 +11,7 @@
  #include "stream.h"
 
 // Loops write function  to socket 'sd' until entire 'n_bytes' is written from 'buf'
-int write_n_bytes(int sd , char *buf int n_bytes)
+int write_n_bytes(int sd , char *buf, int n_bytes)
 {
 	int n = 0;
 	int w = 0;
@@ -70,7 +70,7 @@ int write_two_byte_length(int sd, int twoByteLength)
 	data = htons(data);  /* conversion to network byte order */
 
 	if (write(sd, &data, 2) != 2) 
-	{return (-1)};
+	{return (-1);};
 
 	return 1;
 }
@@ -81,7 +81,7 @@ int read_two_byte_length(int sd, int *twoByteLength)
 	short data = 0;
 
 	if (read(sd, &data, 2) != 2) 
-	{return (-1)};
+	{return (-1);};
 
 	short convert = ntohs(data); /* conversion to host byte order */
   	int t = (int)convert;
