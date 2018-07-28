@@ -37,7 +37,7 @@ typedef struct
  * Outputs current time, client id, and passed format string to log file.
  *	Remove timestamp maybe
  */
-void logger(descriptors *d)
+void logger(descriptors *d, char* argformat, ... )
 {
 	int fileDescriptor;
 	if( (fileDescriptor = open(d->logfile, O_WRONLY | O_APPEND | O_CREAT, 0766)) == -1 )
@@ -47,26 +47,18 @@ void logger(descriptors *d)
 	}
 
 	va_list args;
-	time_t timedata;
-	struct tm * timevalue;
-	char timeformat[64];
 	char* loggerformat;
 	char* clientIDFormat = "client %d-";
 	char clientIDString[64] = "";
 
-	time(&timedata);
-	timevalue = localtime (&timedata);
-	asctime_r(timevalue, timeformat); // string representation of time
-	timeformat[strlen(timeformat) - 1] = '-';//replace \n
 
 	if(d->clientIDString != 0)
 	{
 		sprintf(clientIDString, clientIDFormat, d->clientID);
 	}
 
-	loggerformat = (char*) malloc((strlen(timeformat) + strlen(clientIDString) + strlen(argformat) + 2) * sizeof(char));
+	loggerformat = (char*) malloc((strlen(clientIDString) + strlen(argformat) + 2) * sizeof(char));
 
-	strcpy(loggerformat, timeformat);
 	strcat(loggerformat, clientIDString);
 	strcat(loggerformat, argformat);
 	strcat(loggerformat, "\n");
@@ -76,7 +68,6 @@ void logger(descriptors *d)
 	va_end(args); // end the va_list
 
 	free(loggerformat);
-
 	close(fileDescriptor);
 }
 
