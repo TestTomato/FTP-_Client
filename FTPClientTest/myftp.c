@@ -24,6 +24,10 @@
 #include "stream.h"
 #include "tokenise.h"
 
+#define FILE_BLOCK_SIZE 512
+#define MAX_CMD_INPUT 64
+#define SERV_TCP_PORT   40007   /* default server listening port */
+
 /* Client commands available */
 #define CMD_PUT  "put"
 #define CMD_GET  "get"
