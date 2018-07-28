@@ -33,7 +33,7 @@
 #define CMD_LDIR "ldir"
 #define CMD_CD   "cd"
 #define CMD_LCD  "lcd"
-#define CMD_QUIT "quit"
+#define CMD_EXIT "exit"
 #define CMD_HELP "help"
 
 /* opcodes */
@@ -576,7 +576,7 @@ int main(int argc, char* argv[])
 		}else if(strcmp(tokens[0],CMD_HELP)==0){
 			display_help();
 
-		}else if(strcmp(tokens[0],CMD_QUIT)==0){
+		}else if(strcmp(tokens[0],CMD_EXIT)==0){
 			display_exit();
 			exit(0);
 		}else{
