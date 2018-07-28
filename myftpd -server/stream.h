@@ -9,7 +9,7 @@
 /* Writing a stream of bytes to socket 'sd' from buffer 'buf'
  * returns number of bytes written, else prints write error
  */
-int write_n_bytes(int sd , char *buf int n_bytes);
+int write_n_bytes(int sd , char *buf, int n_bytes);
 
 
 /* Reading a stream of bytes from socket 'sd' to buffer 'buf'
