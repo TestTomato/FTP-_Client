@@ -11,7 +11,7 @@
  #include "stream.h"
 
 // Loops write function  to socket 'sd' until entire 'n_bytes' is written from 'buf'
-int write_n_bytes(int sd , char *buf int n_bytes)
+int write_n_bytes(int sd , char *buf, int n_bytes)
 {
 	int n = 0;
 	int w = 0;
@@ -115,4 +115,3 @@ int read_four_byte_length(int sd, int *fourByteLength)
 
 	return 1;
 }
-
