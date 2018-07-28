@@ -1,7 +1,7 @@
 #This is the makefile for the client application
 
 myftp: myftp.o stream.o tokenise.o
-	gcc -Wall myftp.o stream.o tokenise.o -o -myftp
+	gcc -Wall myftp.o stream.o tokenise.o -o myftp
 myftp.o: myftp.c
 	gcc -c -Wall myftp.c -o myftp.o
 stream.o: stream.c stream.h
