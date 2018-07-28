@@ -4,6 +4,24 @@
  * Filename: myftpd.c
  * Description: 
  */
+ 
+#include <dirent.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <time.h>
+#include <stdarg.h>
+#include <signal.h>
+
+#include "stream.h"
 
 //Command codes convert to char
 #define cmd_Put  'P'
