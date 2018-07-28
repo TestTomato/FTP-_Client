@@ -89,7 +89,7 @@ void send_put(int sd, char *filename)
 
 	/* process the file before initiating put protocol */
 	if( (fd = open(filename, O_RDONLY)) == -1){
-		printf("failed to open file: %s\n",filename);
+		printf("Failed to open file: %s\n",filename);
 		return;
 	}
 
@@ -106,17 +106,17 @@ void send_put(int sd, char *filename)
 
 	/* send put */
 	if( write_code(sd,OP_PUT) == -1){
-		printf("failed to send PUT\n");
+		printf("Failed to send PUT\n");
 		return;
 	}
 
-	if( write_twobytelength(sd,filenamelength) == -1){
-		printf("failed to send length\n");
+	if( write_two_byte_length(sd,filenamelength) == -1){
+		printf("Failed to send length\n");
 		return;
 	}
 
-	if( write_nbytes(sd,filename,filenamelength) <= 0 ){
-		printf("failed to send filename\n");
+	if( write_n_bytes(sd,filename,filenamelength) <= 0 ){
+		printf("Failed to send filename\n");
 		return;
 	}
 
@@ -155,12 +155,12 @@ void send_put(int sd, char *filename)
 
 
 	/* send the data */
-	if( write_code(sd,OP_DATA) == -1){
+	if( write_opcode(sd,OP_DATA) == -1){
 		printf("failed to send OP_DATA\n");
 		return;
 	}
 
-	if(write_fourbytelength(sd,filesize) == -1){
+	if(write_four_byte_length(sd,filesize) == -1){
 		printf("failed to send filesize\n");
 		return;
 	}
@@ -198,20 +198,20 @@ void send_get(int sd, char *filename)
 	}
 
 	/* send get */
-	if(write_code(sd,OP_GET) == -1){
+	if(write_opcode(sd,OP_GET) == -1){
 		printf("failed to send GET\n");
 		return;
 	}
-	if( write_twobytelength(sd,filenamelength) == -1){
+	if( write_two_byte_length(sd,filenamelength) == -1){
 		printf("failed to send length\n");
 		return;
 	}
-	if( write_nbytes(sd,filename,filenamelength) <= 0 ){
+	if( write_n_bytes(sd,filename,filenamelength) <= 0 ){
 		printf("failed to send filename\n");
 		return;
 	}
 
-	if( read_code(sd,&opcode) == -1 ){
+	if( read_opcode(sd,&opcode) == -1 ){
 		printf("failed to read opcode\n");
 		return;
 	}
@@ -244,7 +244,7 @@ void send_get(int sd, char *filename)
 
 
 	/* read filesize */
-	if(read_fourbytelength(sd,&filesize) == -1){
+	if(read_four_byte_length(sd,&filesize) == -1){
 		printf("failed to read filesize\n");
 		return;
 	}
@@ -262,7 +262,7 @@ void send_get(int sd, char *filename)
 		if(block_size > filesize){
 			block_size = filesize;
 		}
-		if( (nr = read_nbytes(sd,filebuffer,block_size)) == -1){
+		if( (nr = read_n_bytes(sd,filebuffer,block_size)) == -1){
 			printf("failed to read file\n");
 			close(fd);
 			return;
@@ -287,12 +287,12 @@ void send_pwd(int sd, char *token)
 	char opcode;
 	int filesize;
 
-	if(write_code(sd,OP_PWD) == -1){
+	if(write_opcode(sd,OP_PWD) == -1){
 		printf("Failed to send pwd\n");
 		return;
 	}
 
-	if(read_code(sd,&opcode) == -1){
+	if(read_opcode(sd,&opcode) == -1){
 		printf("Failed to read opcode\n");
 		return;
 	}
@@ -302,14 +302,14 @@ void send_pwd(int sd, char *token)
 		return;
 	}
 
-	if(read_twobytelength(sd, &filesize) == -1){
+	if(read_two_byte_length(sd, &filesize) == -1){
 		printf("Failed to read filesize\n");
 		return;
 	}
 
 	char directory[filesize+1];
 
-	if(read_nbytes(sd, directory, filesize) == -1){
+	if(read_n_bytes(sd, directory, filesize) == -1){
 		printf("Failed to read directory\n");
 		return;
 	}
@@ -351,7 +351,7 @@ void send_dir(int sd, char *token)
 		return;
 	}
 
-	if(read_fourbytelength(sd, &filesize) == -1){
+	if(read_four_byte_length(sd, &filesize) == -1){
 		printf("Failed to read filesize\n");
 		return;
 	}
@@ -402,17 +402,17 @@ void send_cd(int sd, char *token)
 		return;
 	}
 
-	if(write_twobytelength(sd, length) == -1){
+	if(write_two_byte_length(sd, length) == -1){
 		printf("Failed to write length\n");
 		return;
 	}
 
-	if(write_nbytes(sd, token, strlen(token)) == -1){
+	if(write_n_bytes(sd, token, strlen(token)) == -1){
 		printf("Failed to write directory name\n");
 		return;
 	}
 
-	if(read_code(sd,&opcode) == -1){
+	if(read_opcode(sd,&opcode) == -1){
 		printf("Failed to read opcode\n");
 		return;
 	}
@@ -422,7 +422,7 @@ void send_cd(int sd, char *token)
 		return;
 	}
 
-	if(read_code(sd,&ackcode) == -1){
+	if(read_opcode(sd,&ackcode) == -1){
 		printf("Failed to read ackcode\n");
 		return;
 	}
@@ -449,7 +449,7 @@ void display_lcd(char *token)
 /*
  * Prints a message stating myftp session has been terminated to the client.
  */
-void display_quit()
+void display_exit()
 {
 	printf("Session terminated\n");
 }
@@ -469,7 +469,7 @@ void display_help()
 	printf("ldir - display current local directory listing\n");
 	printf("cd   - change current directory on the server\n");
 	printf("lcd  - change current local directory\n");
-	printf("quit - terminate session\n");
+	printf("exit - terminate session\n");
 	printf("help - display this information\n");
 }
 
@@ -577,7 +577,7 @@ int main(int argc, char* argv[])
 			display_help();
 
 		}else if(strcmp(tokens[0],CMD_QUIT)==0){
-			display_quit();
+			display_exit();
 			exit(0);
 		}else{
 				printf("undefined command, type 'help' for help\n");
