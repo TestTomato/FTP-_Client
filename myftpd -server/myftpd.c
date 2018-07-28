@@ -5,8 +5,6 @@
  * Description: 
  */
 
-
-
 //Command codes convert to char
 #define cmd_Put  'P'
 #define cmd_Get  'G'
@@ -14,29 +12,6 @@
 #define cmd_dir  'B'
 #define cmd_cd	 'C'
 #define cmd_data 'D'
-
-// ack codes for cmd_Put
-// #define ACK_PUT_SUCCESS '0'
-// #define ACK_PUT_FILENAME '1'
-// #define ACK_PUT_CREATEFILE '2'
-// #define ACK_PUT_OTHER '3'
-
-// error messages for cmd_Put ack codes
-// #define ACK_PUT_FILENAME_MSG "the server cannot accept the file as there is a filename clash"
-// #define ACK_PUT_CREATEFILE_MSG "the server cannot accept the file because it cannot create the named file"
-// #define ACK_PUT_OTHER_MSG "the server cannot accept the file due to other reasons"
-
-// ack codes for cmd_Get
-// #define ACK_GET_FIND '0'
-// #define ACK_GET_OTHER '1'
-
-// error messages for cmd_Get ack codes
-// #define ACK_GET_FIND_MSG "the server cannot find requested file"
-// #define ACK_GET_OTHER_MSG "the server cannot send the file due to other reasons"
-
-// ack codes for cmd_cd
-// #define ACK_CD_SUCCESS '0'
-// #define ACK_CD_FIND '1'
 
 // default error message
 #define UNEXPECTED_ERROR_MSG "unexpected behaviour"
@@ -62,10 +37,10 @@ typedef struct
  * Outputs current time, client id, and passed format string to log file.
  *	Remove timestamp maybe
  */
-void logger(descriptors *d, char* argformat, ... )
+void logger(descriptors *d)
 {
 	int fileDescriptor;
-	if( (fileDescriptor = open(d->logfile, O_WRONLY | O_APPEND | O_CREAT,0766)) == -1 )
+	if( (fileDescriptor = open(d->logfile, O_WRONLY | O_APPEND | O_CREAT, 0766)) == -1 )
 	{
 		perror("ERROR: Unable to write to log file");
 		exit(0);
@@ -86,7 +61,7 @@ void logger(descriptors *d, char* argformat, ... )
 
 	if(d->clientIDString != 0)
 	{
-		sprintf(clientIDString, clientIDFormat, d->cid);
+		sprintf(clientIDString, clientIDFormat, d->clientID);
 	}
 
 	loggerformat = (char*) malloc((strlen(timeformat) + strlen(clientIDString) + strlen(argformat) + 2) * sizeof(char));
@@ -112,7 +87,6 @@ void handle_put(descriptors *desc)
 	logger(desc, "SUCCESS: received cmd 'put'");
 
 	int filenamelength;
-	char errCode;
 	char cmdCode;
 	int fd;
 
