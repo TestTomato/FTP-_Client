@@ -37,7 +37,7 @@ typedef struct
  * Outputs current time, client id, and passed format string to log file.
  *	Remove timestamp maybe
  */
-void logger(descriptors *d, char* argformat, ... )
+void logger(descriptors *d, char* thingsToWriteIntoLog)
 {
 	int fileDescriptor;
 	if( (fileDescriptor = open(d->logfile, O_WRONLY | O_APPEND | O_CREAT, 0766)) == -1 )
@@ -57,108 +57,73 @@ void logger(descriptors *d, char* argformat, ... )
 		sprintf(clientIDString, clientIDFormat, d->clientID);
 	}
 
-	loggerformat = (char*) malloc((strlen(clientIDString) + strlen(argformat) + 2) * sizeof(char));
+	loggerformat = (char*) malloc((strlen(clientIDString) + strlen(thingsToWriteIntoLog) + 2) * sizeof(char));
 
 	strcat(loggerformat, clientIDString);
-	strcat(loggerformat, argformat);
+	strcat(loggerformat, thingsToWriteIntoLog);
 	strcat(loggerformat, "\n");
 
-	va_start(args, argformat); // start the va_list after argformat
-	vdprintf(fileDescriptor,  loggerformat,args);
+	va_start(args, thingsToWriteIntoLog); // start the va_list after thingsToWriteIntoLog
+	vdprintf(fileDescriptor,  loggerformat, args);
 	va_end(args); // end the va_list
 
 	free(loggerformat);
 	close(fileDescriptor);
 }
 
-
-// Handles put command to upload file to server-------------------------
+// Handles protocol process to send a requested file from the client to the server.
 void handle_put(descriptors *desc)
 {
-	logger(desc, "SUCCESS: received cmd 'put'");
+	logger(desc, "COMMENCING: command 'put'");
 
 	int filenamelength;
-	char cmdCode;
+	char ackcode;
+	char opcode;
 	int fd;
 
-	// read filename and length
-	if (read_twobytelength(desc->sd, &filenamelength) == -1)
+	/* read filename and length */
+	if( read_two_byte_length(desc->sd, &filenamelength) == -1)
 	{
-		logger(desc, "ERROR: failed to read 2 byte length");
+		logger(desc,"ERROR: failed to read 2 byte length");
 		return;
 	}
 
 	char filename[filenamelength + 1];
 
-	if (read_nbytes(desc->sd, filename, filenamelength) == -1)
+	if(read_n_bytes(desc->sd, filename, filenamelength) == -1)
 	{
 		logger(desc, "ERROR: failed to read filename");
 		return;
 	}
 	
 	filename[filenamelength] = '\0';
+	logger(desc, "PUT %s", filename);
+
 	
-	logger(desc,"SUCCESS: 'put' %s",filename);
-
-	// create new file
-	if ( (fd = open(filename,O_RDONLY)) != -1 )
+	/* attempt to create file */
+	if ((fd = open(filename,O_RDONLY)) != -1)
 	{
-		logger(desc, "ALERT: file already exists: %s", filename);
-		//errCode = ACK_PUT_FILENAME;
+		logger(desc, "ALERT: file '%s' exists", filename);
 	}
-	else if ( (fd = open(filename,O_WRONLY | O_CREAT, 0766 )) == -1 )
+	else if ((fd = open(filename,O_WRONLY | O_CREAT, 0766 )) == -1 )
 	{
-		logger(desc,"ERROR: unable to create file: %s",filename);
-		//errCode = ACK_PUT_CREATEFILE;
-	}
-
-	/* write acknowledgement */
-	if ( write_code(desc->sd, cmd_Put) == -1 )
-	{
-		logger(desc,"ERROR: failed to write command 'put'");
-		return;
-	}
-
-	if (write_code(desc->sd, errCode) == -1)
-	{
-		logger(desc,"ERROR: failed to write errCode:%c", errCode);
-		return;
-	}
-
-	if (errCode != ACK_PUT_SUCCESS)
-	{
-		logger(desc,"SUCCESS: command 'put' completed");
-		return;
-	}
-
-	/* read response from client */
-	if (read_code(desc->sd, &opcode) == -1)
-	{
-		logger(desc,"ERROR: failed to read code");
-	}
-	/* expect to read OP_DATA */
-	if (opcode != OP_DATA)
-	{
-		logger(desc,"ERROR: unexpected opcode:%c, expected: %c", opcode, OP_DATA);
-		return;
+		logger(desc,"ERROR: cannot create file '%s'", filename);
 	}
 
 	int filesize;
 
 	/* read filesize */
-	if(read_fourbytelength(desc->sd, &filesize) == -1)
+	if(read_four_byte_length(desc->sd, &filesize) == -1)
 	{
-		logger(desc,"ERROR: failed to read filesize");
+		logger(desc, "ERROR: failed to read filesize");
 		return;
 	}
 
-
 	int block_size = FILE_BLOCK_SIZE;
-	if(FILE_BLOCK_SIZE > filesize)
+	if (FILE_BLOCK_SIZE > filesize)
 	{
 		block_size = filesize;
 	}
-	
 	char filebuffer[block_size];
 	int nr = 0;
 	int nw = 0;
@@ -169,229 +134,187 @@ void handle_put(descriptors *desc)
 		{
 			block_size = filesize;
 		}
-		if( (nr = read_nbytes(desc->sd,filebuffer,block_size)) == -1)
+		if ((nr = read_n_bytes(desc->sd, filebuffer, block_size)) == -1)
 		{
 			logger(desc,"ERROR: failed to read bytes");
 			close(fd);
 			return;
 		}
-		if( (nw = write(fd,filebuffer,nr)) < nr )
+		if ((nw = write(fd,filebuffer,nr)) < nr)
 		{
-			logger(desc,"ERROR: failed to write %d bytes, wrote %d bytes instead", nr, nw);
+			logger(desc, "ERROR: failed to write %d bytes, wrote %d bytes instead", nr, nw);
 			close(fd);
 			return;
 		}
 		filesize -= nw;
 	}
 	close(fd);
-	logger(desc,"SUCCESS: command 'put' completed");
+	logger(desc,"SUCCESS: PUT completed");
 }
 
-
-// Handles get command to download file from server---------------------
+// Handles protocol process to send a requested file from the server to the client.
 void handle_get(descriptors *desc)
 {
-	logger(desc,"GET");
+	logger(desc, "COMMENCING: command 'get'");
 
 	int fd;
 	struct stat inf;
 	int filesize;
 	int filenamelength;
-	char errCode;
-
 
 	/* read filename and length */
-	if( read_twobytelength(desc->sd,&filenamelength) == -1){
+	if (read_two_byte_length(desc->sd, &filenamelength) == -1)
+	{
 		printf("ERROR: failed to read 2 byte length");
 		return;
 	}
 
 	char filename[filenamelength + 1];
 
-	if(read_nbytes(desc->sd,filename,filenamelength) == -1){
+	if (read_n_bytes(desc->sd, filename, filenamelength) == -1)
+	{
 		printf("ERROR: failed to read filename");
 		return;
 	}
 	filename[filenamelength] = '\0';
 
-	logger(desc,"GET %s",filename);
+	logger(desc, "GET %s", filename);
 
 
 	/* process the file */
-	if( (fd = open(filename, O_RDONLY)) == -1){
-		errCode = ACK_GET_FIND;
-		logger(desc,"%s",ACK_GET_FIND_MSG);
-		if(write_code(desc->sd,OP_GET) == -1){
-			logger(desc,"ERROR: failed to write opcode:%c",OP_GET);
-			return;
-		}
-		if(write_code(desc->sd,errCode) == -1){
-			logger(desc,"ERROR: failed to write errCode:%c",errCode);
-		}
+	if ((fd = open(filename, O_RDONLY)) == -1)
+	{
+		logger(desc,"ERROR: Server is unable to locate requested file");
 		return;
 	}
 
-	if(fstat(fd, &inf) < 0) {
-		logger(desc,"fstat error");
-		errCode = ACK_GET_OTHER;
-		logger(desc,"%s",ACK_GET_OTHER_MSG);
-		if(write_code(desc->sd,OP_GET) == -1){
-			logger(desc,"ERROR: failed to write opcode:%c",OP_GET);
-			return;
-		}
-		if(write_code(desc->sd,errCode) == -1){
-			logger(desc,"ERROR: failed to write errCode:%c",errCode);
-		}
+	if (fstat(fd, &inf) < 0)
+	{
+		logger(desc, "ERROR: fstat error");
 		return;
 	}
 
 	filesize = (int)inf.st_size;
 
 	/* reset file pointer */
-	lseek(fd,0,SEEK_SET);
+	lseek(fd, 0, SEEK_SET);
 
-
-	/* send the data */
-	if( write_code(desc->sd,OP_DATA) == -1){
-		logger(desc,"ERROR: failed to send OP_DATA");
-		return;
-	}
-
-	if(write_fourbytelength(desc->sd,filesize) == -1){
-		logger(desc,"ERROR: failed to send filesize");
+	if (write_four_byte_length(desc->sd, filesize) == -1)
+	{
+		logger(desc, "ERROR: failed to send filesize");
 		return;
 	}
 
 	int nr = 0;
 	char buf[FILE_BLOCK_SIZE];
 
-	while((nr = read(fd,buf,FILE_BLOCK_SIZE)) > 0){
-		if ( write_nbytes(desc->sd,buf,nr) == -1){
-			logger(desc,"ERROR: failed to send file content");
+	while ((nr = read(fd, buf, FILE_BLOCK_SIZE)) > 0)
+	{
+		if (write_n_bytes(desc->sd, buf, nr) == -1)
+		{
+			logger(desc, "ERROR: failed to send file content");
 			return;
 		}
 	}
-	logger(desc,"GET success");
-	logger(desc,"GET complete");
+	logger(desc,"SUCCESS: GET complete");
 }
 
-
-// Handles pwd command to show current path on the server---------------
+// Handles protocol process to display current directory path of server.
 void handle_pwd(descriptors *desc)
 {
-	logger(desc,"PWD");
+	logger(desc, "COMMENCING: command 'pwd'");
 
 	char cwd[1024];
 
 	getcwd(cwd, sizeof(cwd));
 
-	if(write_code(desc->sd,OP_PWD) == -1){
-		logger(desc, "ERROR: failed to write opcode");
-		return;
-	}
-
-	if(write_two_byte_length(desc->sd, strlen(cwd)) == -1){
+	if(write_two_byte_length(desc->sd, strlen(cwd)) == -1)
+	{
 		logger(desc, "ERROR: failed to write length");
 		return;
 	}
 
-	if(write_nbytes(desc->sd, cwd, strlen(cwd)) == -1){
+	if(write_n_bytes(desc->sd, cwd, strlen(cwd)) == -1)
+	{
 		logger(desc, "ERROR: failed to write directory");
 		return;
 	}
 
-	logger(desc, "PWD complete");
+	logger(desc, "SUCCESS: PWD complete");
 }
 
-
-// Handles dir command to list out files in the directory of the server-
+// Handles protocol process to display directory listing of the server.
 void handle_dir(descriptors *desc)
 {
-	logger(desc,"dir: listing filenames in directory");
+	logger(desc, "COMMENCE: command 'dir'");
 
 	char files[1024] = "";
 
 	DIR *dir;
 	struct dirent *ent;
 	dir = opendir(".");
-	if (dir){
-		while ((ent = readdir(dir)) != NULL){
-			strcat(files,ent->d_name);
+	if (dir)
+	{
+		while ((ent = readdir(dir)) != NULL)
+		{
+			strcat(files, ent->d_name);
 			strcat(files, "\n");
 		}
-		files[strlen(files)-1] = '\0';
+		files[strlen(files) - 1] = '\0';
 		closedir(dir);
-		logger(desc, "DIR success");
+		logger(desc, "SUCCESS: DIR success");
 	}
 
-	if(write_code(desc->sd,OP_DIR) == -1){
-		logger(desc, "ERROR: failed to write opcode");
-		return;
-	}
-
-	if(write_fourbytelength(desc->sd, strlen(files)) == -1){
+	if(write_four_byte_length(desc->sd, strlen(files)) == -1)
+	{
 		logger(desc, "ERROR: failed to write length");
 		return;
 	}
 
-	if(write_nbytes(desc->sd, files, strlen(files)) == -1){
+	if(write_n_bytes(desc->sd, files, strlen(files)) == -1)
+	{
 		logger(desc, "ERROR: failed to write file list");
 		return;
 	}
-	logger(desc,"SUCCESS: dir complete");
+	logger(desc,"SUCCESS: DIR complete");
 }
 
-
-// Handles cd command to change directory of the server-----------------
+// Handles protocol process to change directory of the server.
 void handle_cd(descriptors *desc)
 {
-	logger(desc,"cd: change directory");
+	logger(desc,"COMMENCE: command 'cd'");
 
 	int size;
-	char errCode;
 
-	if(read_twobytelength(desc->sd, &size) == -1)
+	if(read_two_byte_length(desc->sd, &size) == -1)
 	{
-		logger(desc, "ERROR: failed to read size");
+		logger(desc,"ERROR: failed to read size");
 		return;
 	}
 
 	char token[size + 1];
 
-	if(read_nbytes(desc->sd,token,size) == -1)
+	if(read_n_bytes(desc->sd,token,size) == -1)
 	{
-		logger(desc, "ERROR: failed to read token");
+		logger(desc,"ERROR: failed to read token");
 		return;
 	}
 	token[size] = '\0';
 
-	logger(desc,"cd %s",token);
+	logger(desc,"CD %s",token);
+
 
 	if(chdir(token) == 0)
 	{
-		errCode = ACK_CD_SUCCESS;
-		logger(desc,"Change Directory operation success");
+		logger(desc,"SUCCESS: CD success");
 	}
 	else
 	{
-		errCode = ACK_CD_FIND;
-		logger(desc,"ERROR: Change Directory uanble to locate directory");
+		logger(desc,"ERROR: CD cannot find directory");
 	}
 
-	if(write_code(desc->sd, OP_CD) == -1)
-	{
-		logger(desc, "ERROR: failed to send cd");
-		return;
-	}
-
-	if(write_code(desc->sd, errcode) == -1)
-	{
-		logger(desc, "ERROR: failed to send error code");
-		return;
-	}
-	logger(desc, "CD complete");
+	logger(desc,"SUCCESS: CD complete");
 }
-
 
 // Remove children processes that are completed-------------------------
 void claim_children()
