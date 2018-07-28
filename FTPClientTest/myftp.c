@@ -105,7 +105,7 @@ void send_put(int sd, char *filename)
 
 
 	/* send put */
-	if( write_code(sd,OP_PUT) == -1){
+	if( write_opcode(sd,OP_PUT) == -1){
 		printf("Failed to send PUT\n");
 		return;
 	}
@@ -336,12 +336,12 @@ void send_dir(int sd, char *token)
 	char opcode;
 	int filesize;
 
-	if(write_code(sd,OP_DIR) == -1){
+	if(write_opcode(sd,OP_DIR) == -1){
 		printf("Failed to send dir\n");
 		return;
 	}
 
-	if(read_code(sd,&opcode) == -1){
+	if(read_opcode(sd,&opcode) == -1){
 		printf("Failed to read opcode\n");
 		return;
 	}
@@ -397,7 +397,7 @@ void send_cd(int sd, char *token)
 	char ackcode;
 	int length = strlen(token);
 
-	if(write_code(sd,OP_CD) == -1){
+	if(write_opcode(sd,OP_CD) == -1){
 		printf("Failed to send cd\n");
 		return;
 	}
