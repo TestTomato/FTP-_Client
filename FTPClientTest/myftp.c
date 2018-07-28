@@ -24,7 +24,7 @@
 #include "stream.h"
 #include "tokenise.h"
 
-/* client commands available */
+/* Client commands available */
 #define CMD_PUT  "put"
 #define CMD_GET  "get"
 #define CMD_PWD  "pwd"
@@ -44,240 +44,33 @@
 #define OP_CD   'C'
 #define OP_DATA 'D'
 
-/* ack codes for OP_PUT */
+/* Acknowledgement codes for OP_PUT 'P' */
 #define ACK_PUT_SUCCESS '0'
 #define ACK_PUT_FILENAME '1'
 #define ACK_PUT_CREATEFILE '2'
 
-/* ack codes for OP_GET */
+/* Acknowledgement codes for OP_GET 'G' */
 #define ACK_GET_FIND '0'
 #define ACK_GET_OTHER '1'
 
-/* ack codes for OP_CD */
+/* Acknowledgement codes for OP_CD 'C' */
 #define ACK_CD_SUCCESS '0'
 #define ACK_CD_FIND '1'
 
-/* error messages for OP_PUT ack codes */
-#define ACK_PUT_FILENAME_MSG "the server cannot accept the file as there is a filename clash"
-#define ACK_PUT_CREATEFILE_MSG "the server cannot accept the file because it cannot create the named file"
+/* Error messages for OP_PUT Acknowledgement codes 'P' */
+#define ACK_PUT_FILENAME_MSG "Server cannot accept the file as there is a filename clash"
+#define ACK_PUT_CREATEFILE_MSG "Server cannot accept the file because it cannot create the named file"
 
-/* error messages for OP_GET ack codes */
-#define ACK_GET_FIND_MSG "the server cannot find requested file"
-#define ACK_GET_OTHER_MSG "the server cannot send the file due to other reasons"
+/* Error messages for OP_GET Acknowledgement codes 'G' */
+#define ACK_GET_FIND_MSG "Server cannot find requested file"
+#define ACK_GET_OTHER_MSG "Server unable to send file due to other reasons"
 
-/* error messages for OP_CD ack codes */
-#define ACK_CD_OTHER_MSG "the server cannot change directory due to other reasons"
+/* Error messages for OP_CD Acknowledgement codes 'C'*/
+#define ACK_CD_OTHER_MSG "Server cannot change directory due to other reasons"
 
-/* other error message */
-#define UNEXPECTED_ERROR_MSG "unexpected behaviour"
+/* Other error messages */
+#define UNEXPECTED_ERROR_MSG "Unexpected behaviour"
 
-
-
-
-/*
- * Uses myftp protocol to send a file from the server to the client.
- */
-void send_put(int sd, char *filename)
-{
-	int fd;
-	struct stat inf;
-	int filesize;
-	int filenamelength = strlen(filename);
-
-	char opcode;
-	char ackcode;
-
-	/* process the file before initiating put protocol */
-	if( (fd = open(filename, O_RDONLY)) == -1){
-		printf("Failed to open file: %s\n",filename);
-		return;
-	}
-
-	if(fstat(fd, &inf) < 0) {
-		printf("fstat error\n");
-		return;
-	}
-
-	filesize = (int)inf.st_size;
-
-	/* reset file pointer */
-	lseek(fd,0,SEEK_SET);
-
-
-	/* send put */
-	if( write_opcode(sd,OP_PUT) == -1){
-		printf("Failed to send PUT\n");
-		return;
-	}
-
-	if( write_two_byte_length(sd,filenamelength) == -1){
-		printf("Failed to send length\n");
-		return;
-	}
-
-	if( write_n_bytes(sd,filename,filenamelength) <= 0 ){
-		printf("Failed to send filename\n");
-		return;
-	}
-
-
-	/* wait for response */
-	if(read_opcode(sd,&opcode) == -1){
-		printf("failed to read opcode\n");
-		return;
-	}
-	if(opcode != OP_PUT){
-		printf("unexpected opcode\n");
-		return;
-	}
-
-	if(read_opcode(sd,&ackcode) == -1){
-		printf("failed to read ackcode\n");
-		return;
-	}
-
-	switch(ackcode){
-		case ACK_PUT_SUCCESS: /* continue */
-		break;
-		case ACK_PUT_FILENAME:
-			printf("%s\n",ACK_PUT_FILENAME_MSG);
-			return;
-		break;
-		case ACK_PUT_CREATEFILE:
-			printf("%s\n",ACK_PUT_CREATEFILE_MSG);
-			return;
-		break;
-		default:
-			printf("%s\n",UNEXPECTED_ERROR_MSG);
-			return;
-		break;
-	}
-
-
-	/* send the data */
-	if( write_opcode(sd,OP_DATA) == -1){
-		printf("failed to send OP_DATA\n");
-		return;
-	}
-
-	if(write_four_byte_length(sd,filesize) == -1){
-		printf("failed to send filesize\n");
-		return;
-	}
-
-	int nr = 0;
-	char buf[FILE_BLOCK_SIZE];
-
-	while((nr = read(fd,buf,FILE_BLOCK_SIZE)) > 0){
-		if ( write_n_bytes(sd,buf,nr) == -1){
-			printf("failed to send file content\n");
-			return;
-		}
-	}
-	printf("sent file: %s\n",filename);
-}
-
-/*
- * Uses the myftp protocol to request a file to be sent from the server to the client.
- */
-void send_get(int sd, char *filename)
-{
-	int filenamelength = strlen(filename);
-	char ackcode;
-	char opcode;
-	int fd;
-
-
-	/* attempt to create file */
-	if( (fd = open(filename,O_RDONLY)) != -1 ){
-		printf("file exists: %s\n",filename);
-		return;
-	}else	if( (fd = open(filename,O_WRONLY | O_CREAT, 0766 )) == -1 ){
-		printf("cannot create file: %s\n",filename);
-		return;
-	}
-
-	/* send get */
-	if(write_opcode(sd,OP_GET) == -1){
-		printf("failed to send GET\n");
-		return;
-	}
-	if( write_two_byte_length(sd,filenamelength) == -1){
-		printf("failed to send length\n");
-		return;
-	}
-	if( write_n_bytes(sd,filename,filenamelength) <= 0 ){
-		printf("failed to send filename\n");
-		return;
-	}
-
-	if( read_opcode(sd,&opcode) == -1 ){
-		printf("failed to read opcode\n");
-		return;
-	}
-
-	/* error code being sent */
-	if(opcode == OP_GET){
-		if(read_opcode(sd,&ackcode) == -1){
-			printf("failed to read ackcode\n");
-			return;
-		}
-		switch(ackcode){
-			case ACK_GET_FIND:
-				printf("%s\n",ACK_GET_FIND_MSG);
-			break;
-			case ACK_GET_OTHER:
-				printf("%s\n",ACK_GET_OTHER_MSG);
-			break;
-			default:
-				printf("%s\n",UNEXPECTED_ERROR_MSG);
-			break;
-		}
-		close(fd);
-		unlink(filename);
-		return;
-	}
-	/* else file being sent */
-
-
-	int filesize;
-
-
-	/* read filesize */
-	if(read_four_byte_length(sd,&filesize) == -1){
-		printf("failed to read filesize\n");
-		return;
-	}
-
-
-	int block_size = FILE_BLOCK_SIZE;
-	if(FILE_BLOCK_SIZE > filesize){
-		block_size = filesize;
-	}
-	char filebuffer[block_size];
-	int nr = 0;
-	int nw = 0;
-
-	while(filesize > 0){
-		if(block_size > filesize){
-			block_size = filesize;
-		}
-		if( (nr = read_n_bytes(sd,filebuffer,block_size)) == -1){
-			printf("failed to read file\n");
-			close(fd);
-			return;
-		}
-		if( (nw = write(fd,filebuffer,nr)) < nr ){
-			printf("failed to write %d bytes, wrote %d bytes instead\n",nr,nw);
-			close(fd);
-			return;
-		}
-		filesize -= nw;
-	}
-
-	close(fd);
-	printf("recieved file: %s\n",filename);
-}
 
 /*
  * Uses the myftp protocol to print the current directory path of the server.
@@ -389,7 +182,7 @@ void display_ldir(char *token)
 }
 
 /*
- * Uses the myftp protocol to change the directory of the server.
+ * Use of myftp protocol to send change the directory request to  the server.
  */
 void send_cd(int sd, char *token)
 {
@@ -445,6 +238,210 @@ void display_lcd(char *token)
 	chdir(token);
 }
 
+/*
+ * Use of the myftp protocol to download a file from the server to the client.
+ */
+void send_get(int sd, char *filename)
+{
+	int filenamelength = strlen(filename);
+	char ackcode;
+	char opcode;
+	int fd;
+
+
+	/* attempt to create file */
+	if( (fd = open(filename,O_RDONLY)) != -1 ){
+		printf("file exists: %s\n",filename);
+		return;
+	}else	if( (fd = open(filename,O_WRONLY | O_CREAT, 0766 )) == -1 ){
+		printf("cannot create file: %s\n",filename);
+		return;
+	}
+
+	/* send get */
+	if(write_opcode(sd,OP_GET) == -1){
+		printf("failed to send GET\n");
+		return;
+	}
+	if( write_two_byte_length(sd,filenamelength) == -1){
+		printf("failed to send length\n");
+		return;
+	}
+	if( write_n_bytes(sd,filename,filenamelength) <= 0 ){
+		printf("failed to send filename\n");
+		return;
+	}
+
+	if( read_opcode(sd,&opcode) == -1 ){
+		printf("failed to read opcode\n");
+		return;
+	}
+
+	/* error code being sent */
+	if(opcode == OP_GET){
+		if(read_opcode(sd,&ackcode) == -1){
+			printf("failed to read ackcode\n");
+			return;
+		}
+		switch(ackcode){
+			case ACK_GET_FIND:
+				printf("%s\n",ACK_GET_FIND_MSG);
+			break;
+			case ACK_GET_OTHER:
+				printf("%s\n",ACK_GET_OTHER_MSG);
+			break;
+			default:
+				printf("%s\n",UNEXPECTED_ERROR_MSG);
+			break;
+		}
+		close(fd);
+		unlink(filename);
+		return;
+	}
+	/* else file being sent */
+
+
+	int filesize;
+
+
+	/* read filesize */
+	if(read_four_byte_length(sd,&filesize) == -1){
+		printf("failed to read filesize\n");
+		return;
+	}
+
+
+	int block_size = FILE_BLOCK_SIZE;
+	if(FILE_BLOCK_SIZE > filesize){
+		block_size = filesize;
+	}
+	char filebuffer[block_size];
+	int nr = 0;
+	int nw = 0;
+
+	while(filesize > 0){
+		if(block_size > filesize){
+			block_size = filesize;
+		}
+		if( (nr = read_n_bytes(sd,filebuffer,block_size)) == -1){
+			printf("failed to read file\n");
+			close(fd);
+			return;
+		}
+		if( (nw = write(fd,filebuffer,nr)) < nr ){
+			printf("failed to write %d bytes, wrote %d bytes instead\n",nr,nw);
+			close(fd);
+			return;
+		}
+		filesize -= nw;
+	}
+
+	close(fd);
+	printf("recieved file: %s\n",filename);
+}
+
+/*
+ * Use of myftp protocol to upload a file from the client to the server.
+ */
+void send_put(int sd, char *filename)
+{
+	int fd;
+	struct stat inf;
+	int filesize;
+	int filenamelength = strlen(filename);
+
+	char opcode;
+	char ackcode;
+
+	/* process the file before initiating put protocol */
+	if( (fd = open(filename, O_RDONLY)) == -1){
+		printf("Failed to open file: %s\n",filename);
+		return;
+	}
+
+	if(fstat(fd, &inf) < 0) {
+		printf("fstat error\n");
+		return;
+	}
+
+	filesize = (int)inf.st_size;
+
+	/* reset file pointer */
+	lseek(fd,0,SEEK_SET);
+
+
+	/* send put */
+	if( write_opcode(sd,OP_PUT) == -1){
+		printf("Failed to send PUT\n");
+		return;
+	}
+
+	if( write_two_byte_length(sd,filenamelength) == -1){
+		printf("Failed to send length\n");
+		return;
+	}
+
+	if( write_n_bytes(sd,filename,filenamelength) <= 0 ){
+		printf("Failed to send filename\n");
+		return;
+	}
+
+
+	/* wait for response */
+	if(read_opcode(sd,&opcode) == -1){
+		printf("failed to read opcode\n");
+		return;
+	}
+	if(opcode != OP_PUT){
+		printf("unexpected opcode\n");
+		return;
+	}
+
+	if(read_opcode(sd,&ackcode) == -1){
+		printf("failed to read ackcode\n");
+		return;
+	}
+
+	switch(ackcode){
+		case ACK_PUT_SUCCESS: /* continue */
+		break;
+		case ACK_PUT_FILENAME:
+			printf("%s\n",ACK_PUT_FILENAME_MSG);
+			return;
+		break;
+		case ACK_PUT_CREATEFILE:
+			printf("%s\n",ACK_PUT_CREATEFILE_MSG);
+			return;
+		break;
+		default:
+			printf("%s\n",UNEXPECTED_ERROR_MSG);
+			return;
+		break;
+	}
+
+
+	/* send the data */
+	if( write_opcode(sd,OP_DATA) == -1){
+		printf("failed to send OP_DATA\n");
+		return;
+	}
+
+	if(write_four_byte_length(sd,filesize) == -1){
+		printf("failed to send filesize\n");
+		return;
+	}
+
+	int nr = 0;
+	char buf[FILE_BLOCK_SIZE];
+
+	while((nr = read(fd,buf,FILE_BLOCK_SIZE)) > 0){
+		if ( write_n_bytes(sd,buf,nr) == -1){
+			printf("failed to send file content\n");
+			return;
+		}
+	}
+	printf("sent file: %s\n",filename);
+}
 
 /*
  * Prints a message stating myftp session has been terminated to the client.
