@@ -1,0 +1,12 @@
+Sun Jul 29 13:30:23 2018-server initialised
+Sun Jul 29 13:30:23 2018-initial dir set to /home/ubuntu/Desktop/ICT374 ASM2/ICT374-myftp-master/myftpd
+Sun Jul 29 13:30:23 2018-myftp server now listening on port 40007
+Sun Jul 29 13:30:25 2018-client 1-connected
+Sun Jul 29 13:30:26 2018-client 1-DIR
+Sun Jul 29 13:30:26 2018-client 1-DIR success
+Sun Jul 29 13:30:26 2018-client 1-DIR complete
+Sun Jul 29 13:30:45 2018-client 1-PUT
+Sun Jul 29 13:30:45 2018-client 1-PUT token.c
+Sun Jul 29 13:30:45 2018-client 1-PUT success
+Sun Jul 29 13:30:45 2018-client 1-PUT completed
+Sun Jul 29 13:31:08 2018-client 1-disconnected
