@@ -9,4 +9,4 @@ stream.o: stream.c stream.h
 tokenise.o: tokenise.c tokenise.h
 	gcc -c -Wall tokenise.c -o tokenise.o
 clean:
-	rm -f *.o myftp
+	rm -f *.o myftp test
