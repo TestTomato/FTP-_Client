@@ -457,7 +457,7 @@ int main(int argc, char* argv[])
 	/* make the server a daemon. */
 	daemon_init();
 	logger(&desc, "server started");
-	logger(&desc, "initial directory set to %s",currentDir);
+	//logger(&desc, "initial directory set to %s", currentDir);
 
 	/* set up listening socket sd */
 	if ((desc.sd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
