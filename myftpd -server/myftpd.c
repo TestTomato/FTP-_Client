@@ -2,9 +2,9 @@
  * Author: Au Yong Tuck Loen , Bryan Leong Yi Jun
  * Date: 29/07/18
  * Filename: myftpd.c
- * Description: 
+ * Description:
  */
- 
+
 #include <dirent.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -40,7 +40,7 @@
 #define SERV_TCP_PORT 40007
 
 // log file
-#define LOGPATH "/myftpd.log"	
+#define LOGPATH "/myftpd.log"
 
 // struct for managing socket descriptor, client id and logfile path
 typedef struct
@@ -95,8 +95,6 @@ void handle_put(descriptors *desc)
 	logger(desc, "COMMENCING: command 'put'");
 
 	int filenamelength;
-	char ackcode;
-	char opcode;
 	int fd;
 
 	/* read filename and length */
@@ -113,11 +111,11 @@ void handle_put(descriptors *desc)
 		logger(desc, "ERROR: failed to read filename");
 		return;
 	}
-	
+
 	filename[filenamelength] = '\0';
 	logger(desc, "PUT %s", filename);
 
-	
+
 	/* attempt to create file */
 	if ((fd = open(filename,O_RDONLY)) != -1)
 	{
@@ -377,7 +375,7 @@ void daemon_init(void)
 
 // Recieve a one byte char command off socket connection from client----
 void serve_a_client(descriptors *desc)
-{	
+{
 	char cmdCode;
 
 	logger(desc, "connected");
@@ -403,7 +401,7 @@ void serve_a_client(descriptors *desc)
 				handle_cd(desc);
 			break;
 			default:
-				logger(desc,"invalid opcode recieved");//invalid :. disregard
+				logger(desc,"invalid command code received");
 			break;
 		}// end switch
 
@@ -429,7 +427,7 @@ int main(int argc, char* argv[])
 	char currentDir[256] = "";
 
 	/* get current directory */
-	getcwd(currentDir,sizeof(currentDir));
+	getcwd(currentDir, sizeof(currentDir));
 
 	if( argc > 2 )
 	{
@@ -450,14 +448,14 @@ int main(int argc, char* argv[])
 	}
 
 	/* setup absolute path to logfile */
-	getcwd(currentDir,sizeof(currentDir));
-	strcpy(desc.logfile,currentDir);
-	strcat(desc.logfile,LOGPATH);
+	getcwd(currentDir, sizeof(currentDir));
+	strcpy(desc.logfile, currentDir);
+	strcat(desc.logfile, LOGPATH);
 
 	/* make the server a daemon. */
 	daemon_init();
 	logger(&desc, "server started");
-	//logger(&desc, "initial directory set to %s", currentDir);
+	logger(&desc, "initial directory set to ");
 
 	/* set up listening socket sd */
 	if ((desc.sd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
