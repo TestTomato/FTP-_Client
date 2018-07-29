@@ -1,10 +1,10 @@
-/**
- * AUTHOR: Clem Davies, Daniel Kearsley
- * DATE: 3/11/17
- * FILENAME: myftpd.c
- * DESCRIPTION: The server program for myftp.
- *
+/*
+ * Author: Au Yong Tuck Loen , Bryan Leong Yi Jun
+ * Date: 29/07/18
+ * Filename: myftpd.c
+ * Description: 
  */
+
 #include <dirent.h>
 #include <unistd.h>
 #include <stdio.h>
